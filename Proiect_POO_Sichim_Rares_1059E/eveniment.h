@@ -4,6 +4,7 @@
 #include<cstring>
 using namespace std;
 #pragma warning(disable:4996)
+
 class Eveniment
 {
 private:
@@ -84,20 +85,15 @@ public:
 	}
 
 	friend Eveniment operator--(Eveniment& e) {
-		if (e.ora = 0)
-		{
-			e.ora = 23;
-			if (e.zi = 1) {
-				e.zi = 31;
-				if (e.luna = 1) {
-					e.luna = 12;
-					e.an--;
-				}
-				else e.luna--;
-			}
-			else e.zi--;
-		}
+		if (e.zi == 1) e.zi = 31;
+		else e.zi--;
+		if (e.luna == 1) e.luna = 12;
+		else e.luna--;
+		e.an--;
+		if (e.ora == 0) e.ora = 23;
 		else e.ora--;
+		if (e.minute == 0) e.minute = 59;
+		else e.minute--;
 		return e;
 	}
 
@@ -134,8 +130,8 @@ public:
 		}
 	}
 
-	friend istream& operator>>(istream& in, Eveniment e) {
-		cout << "Denumirea filmului: ";
+	friend istream& operator>>(istream& in, Eveniment& e) {
+		cout << "Denumire eveniment: "<<endl;
 		in >> e.denumire;
 		cout << "Zi: ";
 		in >> e.zi;
@@ -145,20 +141,22 @@ public:
 		in >> e.an;
 		cout << "Ora: ";
 		in >> e.ora;
-		cout << "Minutele: ";
+		cout << "Minute: ";
 		in >> e.minute;
+		cout << endl;
 		return in;
 	}
 
-	friend ostream& operator<<(ostream& out, Eveniment e) {
-		out << "Denumirea evenimentului este '" << e.denumire << "'" << endl;
-		out << "Data sa este " << e.zi << "." << e.luna << "." << e.an << endl;
-		if (e.ora == 0) out << "Evenimentul incepe la 00:";
-		else out << "Evenimentul incepe la ora: " << e.ora << ":";
+	friend ostream& operator<<(ostream& out, Eveniment& e) {
+		out << "-----------"<<e.denumire<<"--------------" << endl;
+		out << "Data: " << e.zi << "." << e.luna << "." << e.an << endl;
+		if (e.ora == 0) out << "Ora: 00:";
+		else out << "Ora: " << e.ora << ":";
 		if (e.minute == 0)
 			out << "00" << endl;
 		else
 			out << e.minute << endl;
+		out << "------------------------------"<<endl;
 		return out;
 	}
 };

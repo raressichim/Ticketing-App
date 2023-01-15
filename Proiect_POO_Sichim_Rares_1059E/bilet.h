@@ -2,15 +2,17 @@
 #include<iostream>
 #include<string>
 #include<cstring>
+#include<fstream>
+#include"taxa.h"
 using namespace std;
 #pragma warning(disable:4996)
  
-class Bilet
+class Bilet :public Taxa
 {
-private:
+protected:
 	const int id = 0;
 	static int bilete_tiparite; //contorul pentru id
-	int pret;
+	float pret;
 	char* categorie;
 	//consideram ca cel care a cumparat biletul face mai multe plati pe platforma 
 	//pentru a isi incarca contul cu o anumita suma pentru a putea achizitiona diferite produse in timpul evenimentului
@@ -31,7 +33,6 @@ public:
 		this->pret = pret;
 		this->categorie = new char[strlen(categorie) + 1];
 		strcpy(this->categorie, categorie);
-
 		this->nr_plati = nr_plati;
 
 		if (nr_plati > 0)
@@ -52,7 +53,6 @@ public:
 		strcpy(this->categorie, b.categorie);
 
 		this->nr_plati = b.nr_plati;
-
 		if (b.incarcari != NULL)
 			this->incarcari = new int[b.nr_plati];
 		for (int i = 0; i < b.nr_plati; i++)
@@ -66,28 +66,29 @@ public:
 		this->incarcari = NULL;
 	}
 
-	Bilet& operator=(const Bilet& b)
+	Bilet& operator=(const Bilet& b) 
 	{
+		if (this != &b) {
+			this->pret = b.pret;
+			if (this->categorie != NULL)
+				delete[] this->categorie;
 
-		this->pret = b.pret;
-		if (this->categorie != NULL)
-			delete[] this->categorie;
+			if (b.categorie != NULL)
+				this->categorie = new char[strlen(b.categorie) + 1];
 
-		if (b.categorie != NULL)
-			this->categorie = new char[strlen(b.categorie) + 1];
+			strcpy(this->categorie, b.categorie);
 
-		strcpy(this->categorie, b.categorie);
+			this->nr_plati = b.nr_plati;
 
-		this->nr_plati = b.nr_plati;
+			if (this->incarcari != NULL)
+				delete[] this->incarcari;
 
-		if (this->incarcari != NULL)
-			delete[] this->incarcari;
+			if (b.incarcari != NULL) {
+				this->incarcari = new int[b.nr_plati];
 
-		if (b.incarcari != NULL) {
-			this->incarcari = new int[b.nr_plati];
-
-			for (int i = 0; i < b.nr_plati; ++i)
-				this->incarcari[i] = b.incarcari[i];
+				for (int i = 0; i < b.nr_plati; ++i)
+					this->incarcari[i] = b.incarcari[i];
+			}
 		}
 		return *this;
 
@@ -97,12 +98,12 @@ public:
 		return this->id;
 	}
 
-	int getPret() {
+	float getPret() {
 		return this->pret;
 	}
 
-	void setPret(int pret) {
-		if (pret > 0 && pret != NULL) this->pret = pret;
+	void setPret(float pret) {
+		if (pret > 0 ) this->pret = pret;
 	}
 
 	char* getCategorie() {
@@ -122,14 +123,17 @@ public:
 	}
 
 	void setNrPlati(int nr_plati) {
-		if (nr_plati > 0 && nr_plati != NULL) this->nr_plati = nr_plati;
+		if (nr_plati > 0 ) this->nr_plati = nr_plati;
 	}
 
-	int* getIncarcari() {
-		int* copie = new int[this->nr_plati];
-		for (int i = 0; i < this->nr_plati; i++)
-			copie[i] = this->incarcari[i];
-		return copie;
+	int* getIncarcari() {	
+		if (incarcari != nullptr) {
+			int* copie = new int[this->nr_plati];
+			for (int i = 0; i < this->nr_plati; i++)
+				copie[i] = this->incarcari[i];
+			return copie;
+		}
+		else return nullptr;
 	}
 
 	void setIncarcari(int* v, int nr_plati) {
@@ -163,8 +167,67 @@ public:
 		return suma;
 	}
 
+	void scriere_binar()
+	{
+		ofstream f("bilete.bin", ios::binary);
+		f.write((char*)&id, sizeof(id));
+		f.write((char*)&pret, sizeof(pret));
+
+		int lungime = strlen(categorie);
+		f.write((char*)&lungime, sizeof(lungime));
+		f.write(categorie, (lungime + 1)*sizeof(char));
+
+		f.write((char*)&nr_plati, sizeof(nr_plati));
+		for (int i=0; i < nr_plati; i++)
+		{
+			f.write((char*)&incarcari[i], sizeof(incarcari[i]));
+		}
+		f.close();
+	}
+
+	void citire_binar()
+	{
+		ifstream f("bilete.bin",ios::binary);
+		f.read((char*)&id, sizeof(id));
+		f.read((char*)&pret, sizeof(pret));
+		
+		int lungime = 0;
+		f.read((char*)&lungime, sizeof(lungime));
+		char* sir = new char[lungime + 1];
+		f.read(sir, lungime + 1);
+		strcpy(categorie, sir);
+		delete[]sir;
+
+		f.read((char*)&nr_plati, sizeof(nr_plati));
+		delete[]incarcari;
+		incarcari = new int[nr_plati];
+		for (int i=0; i < nr_plati; i++)
+		{
+			f.read((char*)&incarcari[i], sizeof(incarcari[i]));
+		}
+		f.close();
+	}
+
+	float tva() {
+		return pret * 19 / 100;
+	}
+
+	//verifica daca biletul cumparat poate fi upgradat la o categorie superioara
+	virtual void upgrade() {
+		if (strcmp(categorie, "vip") == 0 || strcmp(categorie, "VIP") == 0 || strcmp(categorie, "Vip") == 0) cout << "Biletul dumneavoastra "<<id<<" nu poate fi upgradat";
+		else
+		{
+			cout << "Biletul dumneavostra " << id << " a fost upgradat";
+			delete[]categorie;
+			categorie = new char[4];
+			strcpy(categorie, "vip");
+			pret += 50;
+		}
+		cout << endl;
+	}
+
 	//returneaza id-ul primului cumparator care a cumparat cel mai scump bilet dintr-un vector de bilete
-	static int CelMaiScumpBilet(Bilet* v, int n) {
+	static int CelMaiScumpBilet(Bilet* v, int n) { 
 		int maxim = -1, k = 0;
 		for (int i = 0; i < n; i++)
 			if (v[i].pret > maxim) {
@@ -179,8 +242,7 @@ public:
 	}
 
 
-	friend istream& operator>>(istream& in, Bilet& b) {
-
+	friend istream& operator>>(istream& in, Bilet& b) { 
 		char buffer[101];
 		cout << "Pretul: ";
 		in >> b.pret;
@@ -198,16 +260,25 @@ public:
 	}
 
 	friend ostream& operator<<(ostream& out, Bilet& b) {
-
-		out << "Pretul este " << b.pret << endl;
-		out << "Categoria este " << b.categorie << endl;
-		out << "Numarul platilor efectuate este " << b.nr_plati << endl;
+		out << "-----------Bilet "<<b.id<<"--------------"<<endl;
+		out << "Pret: " << b.pret << endl;
+		out << "Categorie: " << b.categorie << endl;
+		out << "Numarul platilor efectuate: " << b.nr_plati << endl;
 		out << "Valorile fiecarei plati: ";
 		for (int i = 0; i < b.nr_plati; i++)
 			out << b.incarcari[i] << " ";
 		out << endl;
 		return out;
 	}
+
+	/*friend ofstream& operator<<(ofstream& f, Bilet& b) {
+		f << b.pret << endl;
+		f << b.categorie << endl;
+		f  << b.nr_plati << endl;
+		for (int i = 0; i < b.nr_plati; i++)
+			f << b.incarcari[i] << endl;
+		return f;
+	}*/
 
 };
 int Bilet::bilete_tiparite = 0;
